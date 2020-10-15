@@ -25,8 +25,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 }
 
 func createShortURL(url string) string {
-	shortURL := generateURL()
-	urlsMap["string"] = shortURL
+	shortURL := "/" + generateURL()
+	urlsMap[shortURL] = url
 	return shortURL
 }
 
