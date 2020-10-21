@@ -6,7 +6,13 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
+	"sync"
 )
+
+type urlsStruct struct {
+	urls map[string]string
+	mux  sync.Mutex
+}
 
 var urlsMap map[string]string
 var defaultChars = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -21,19 +27,21 @@ func generateURL() string {
 	return s
 }
 
-func createShortURL(url string) string {
+func (u *urlsStruct) createShortURL(url string) string {
 	shortURL := "/" + generateURL()
-	urlsMap[shortURL] = url
+	u.mux.Lock()
+	u.urls[shortURL] = url
+	u.mux.Unlock()
 	return shortURL
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func (u *urlsStruct) handler(w http.ResponseWriter, r *http.Request) {
 	url := string(r.URL.Path)
 
 	url = strings.Replace(url, "/shorten/", "", 1)
 	fmt.Println("Stripped url is:", url)
 
-	shortURL := createShortURL(url)
+	shortURL := u.createShortURL(url)
 	fmt.Fprintf(w, shortURL)
 
 }
