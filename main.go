@@ -14,6 +14,9 @@ type urlsStruct struct {
 	homeCallCount  int
 	shortCallCount int
 	statsCallCount int
+	urlsCount      int
+	succRedir      int
+	failRedir      int
 	mux            sync.Mutex
 }
 
@@ -33,6 +36,7 @@ func (u *urlsStruct) createShortURL(url string) string {
 	shortURL := "/" + generateURL()
 	u.mux.Lock()
 	u.urls[shortURL] = url
+	u.urlsCount++
 	u.mux.Unlock()
 	return shortURL
 }
@@ -56,16 +60,27 @@ func (u *urlsStruct) stats(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "home called: %d\n", u.homeCallCount)
 	fmt.Fprintf(w, "Shorten called: %d\n", u.shortCallCount)
 	fmt.Fprintf(w, "Stats called: %d\n", u.statsCallCount)
+
+	fmt.Fprintf(w, "Generated urls: %d\n", u.urlsCount)
+	fmt.Fprintf(w, "Success redirect: %d\n", u.succRedir)
+	fmt.Fprintf(w, "Failed redirect: %d\n", u.failRedir)
 }
 
 func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 	u.homeCallCount++
 
 	fmt.Fprintf(w, "This is the home of my website!\n\n")
+
 	url := string(r.URL.Path)
-	expandedURL := u.urls[url]
-	if expandedURL != "" {
-		fmt.Fprintf(w, "Redirect to:\n"+expandedURL)
+	if url != "/" {
+		expandedURL := u.urls[url]
+		if expandedURL != "" {
+			fmt.Fprintf(w, "Redirect to:\n"+expandedURL)
+			u.succRedir++
+			return
+		}
+
+		u.failRedir++
 	}
 }
 
@@ -78,6 +93,9 @@ func main() {
 	data.shortCallCount = 0
 	data.homeCallCount = 0
 	data.statsCallCount = 0
+	data.urlsCount = 0
+	data.succRedir = 0
+	data.failRedir = 0
 
 	// API
 	http.HandleFunc("/", data.home) // The dafault url is localhost:8080
