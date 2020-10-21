@@ -10,11 +10,10 @@ import (
 )
 
 type urlsStruct struct {
-	urls map[string]string
-	mux  sync.Mutex
+	urls           map[string]string
+	mux            sync.Mutex
 }
 
-var urlsMap map[string]string
 var defaultChars = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func generateURL() string {
@@ -46,20 +45,21 @@ func (u *urlsStruct) handler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func home(w http.ResponseWriter, r *http.Request) {
+func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "This is the home of my website!\n\n")
 	url := string(r.URL.Path)
-	expandedURL := urlsMap[url]
+	expandedURL := u.urls[url]
 	if expandedURL != "" {
 		fmt.Fprintf(w, "Redirect to:\n"+expandedURL)
 	}
 }
 
 func main() {
-	urlsMap = make(map[string]string, 0)
+	data := urlsStruct{}
 
-	http.HandleFunc("/", home) // The dafault url is localhost:8080
-	http.HandleFunc("/shorten/", handler)
+	data.urls = make(map[string]string, 0)
+	http.HandleFunc("/", data.home) // The dafault url is localhost:8080
+	http.HandleFunc("/shorten/", data.handler)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
