@@ -51,9 +51,9 @@ func generateURL() string {
 func (u *urlsStruct) createShortURL(url string) string {
 	shortURL := "/" + generateURL()
 	u.mux.Lock()
+	defer u.mux.Unlock()
 	u.urls[shortURL] = url
 	u.Stats.UrlsGenerated++
-	u.mux.Unlock()
 	return shortURL
 }
 
