@@ -70,7 +70,7 @@ func (u *urlsStruct) handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, shortURL)
 }
 
-func (u *urlsStruct) stats(w http.ResponseWriter, r *http.Request) {
+func (u *urlsStruct) showStats(w http.ResponseWriter, r *http.Request) {
 	atomic.AddInt32(&u.Stats.StatsVisit, 1)
 
 	formatNeeded, ok := r.URL.Query()["format"]
@@ -122,7 +122,7 @@ func main() {
 	// API
 	http.HandleFunc("/", data.home) // The dafault url is localhost:8080
 	http.HandleFunc("/shorten/", data.handler)
-	http.HandleFunc("/stats", data.stats)
+	http.HandleFunc("/stats", data.showStats)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
