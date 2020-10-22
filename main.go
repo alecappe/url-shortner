@@ -98,7 +98,9 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 
 	url := string(r.URL.Path)
 	if url != "/" {
+		u.mux.Lock()
 		expandedURL := u.urls[url]
+		u.mux.Unlock()
 		if expandedURL != "" {
 			fmt.Fprintf(w, "Redirect to:\n"+expandedURL)
 			u.Stats.SuccessRedirect++
