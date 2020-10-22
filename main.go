@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -60,6 +61,15 @@ func (u *urlsStruct) handler(w http.ResponseWriter, r *http.Request) {
 func (u *urlsStruct) stats(w http.ResponseWriter, r *http.Request) {
 	u.Stats.StatsVisit++
 
+	formatNeeded, ok := r.URL.Query()["format"]
+	if ok && formatNeeded[0] == "json" {
+		b, err := json.Marshal(u)
+		if err != nil {
+			log.Fatalf("Unable to encode")
+		}
+		fmt.Fprintf(w, string(b))
+		return
+	}
 
 	fmt.Fprintf(w, "home called: %d\n", u.Stats.HomeVisit)
 	fmt.Fprintf(w, "Shorten called: %d\n", u.Stats.ShortenCall)
