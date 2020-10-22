@@ -12,7 +12,7 @@ import (
 
 type urlsStruct struct {
 	urls map[string]string
-	mux  sync.Mutex
+	mux  sync.RWMutex
 
 	Stats struct {
 		HomeVisit       int
@@ -74,7 +74,9 @@ func (u *urlsStruct) stats(w http.ResponseWriter, r *http.Request) {
 
 	formatNeeded, ok := r.URL.Query()["format"]
 	if ok && formatNeeded[0] == "json" {
+		u.mux.RLock()
 		b, err := json.Marshal(u)
+		u.mux.RUnlock()
 		if err != nil {
 			log.Fatalf("Unable to encode")
 		}
@@ -82,6 +84,7 @@ func (u *urlsStruct) stats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	u.mux.RLock()
 	fmt.Fprintf(w, "home called: %d\n", u.Stats.HomeVisit)
 	fmt.Fprintf(w, "Shorten called: %d\n", u.Stats.ShortenCall)
 	fmt.Fprintf(w, "Stats called: %d\n", u.Stats.StatsVisit)
@@ -89,6 +92,7 @@ func (u *urlsStruct) stats(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Generated urls: %d\n", u.Stats.UrlsGenerated)
 	fmt.Fprintf(w, "Success redirect: %d\n", u.Stats.SuccessRedirect)
 	fmt.Fprintf(w, "Failed redirect: %d\n", u.Stats.FailedRedirect)
+	u.mux.RUnlock()
 }
 
 func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
@@ -98,9 +102,9 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 
 	url := string(r.URL.Path)
 	if url != "/" {
-		u.mux.Lock()
+		u.mux.RLock()
 		expandedURL := u.urls[url]
-		u.mux.Unlock()
+		u.mux.RUnlock()
 		if expandedURL != "" {
 			fmt.Fprintf(w, "Redirect to:\n"+expandedURL)
 			u.Stats.SuccessRedirect++
