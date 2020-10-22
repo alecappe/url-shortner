@@ -24,6 +24,18 @@ type urlsStruct struct {
 	}
 }
 
+func newUrlsStruct() *urlsStruct {
+	v := urlsStruct{}
+	v.urls = make(map[string]string)
+	v.Stats.ShortenCall = 0
+	v.Stats.HomeVisit = 0
+	v.Stats.StatsVisit = 0
+	v.Stats.UrlsGenerated = 0
+	v.Stats.SuccessRedirect = 0
+	v.Stats.FailedRedirect = 0
+	return &v
+}
+
 var defaultChars = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func generateURL() string {
@@ -55,7 +67,6 @@ func (u *urlsStruct) handler(w http.ResponseWriter, r *http.Request) {
 
 	shortURL := u.createShortURL(url)
 	fmt.Fprintf(w, shortURL)
-
 }
 
 func (u *urlsStruct) stats(w http.ResponseWriter, r *http.Request) {
@@ -99,17 +110,7 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	data := urlsStruct{}
-
-	data.urls = make(map[string]string, 0)
-
-	// Init stats
-	data.Stats.ShortenCall = 0
-	data.Stats.HomeVisit = 0
-	data.Stats.StatsVisit = 0
-	data.Stats.UrlsGenerated = 0
-	data.Stats.SuccessRedirect = 0
-	data.Stats.FailedRedirect = 0
+	data := newUrlsStruct()
 
 	// API
 	http.HandleFunc("/", data.home) // The dafault url is localhost:8080
