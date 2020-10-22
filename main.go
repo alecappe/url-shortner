@@ -76,7 +76,7 @@ func (u *urlsStruct) showStats(w http.ResponseWriter, r *http.Request) {
 	formatNeeded, ok := r.URL.Query()["format"]
 	if ok && formatNeeded[0] == "json" {
 		u.mux.RLock()
-		b, err := json.Marshal(u)
+		b, err := json.MarshalIndent(u, "", "    ")
 		u.mux.RUnlock()
 		if err != nil {
 			log.Fatalf("Unable to encode")
