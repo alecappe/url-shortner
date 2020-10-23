@@ -1,17 +1,34 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 type urlsStruct struct {
-	urls           map[string]string
-	mux            sync.Mutex
+	urls map[string]string
+	mux  sync.RWMutex
+
+	Stats struct {
+		HomeVisit       int32
+		ShortenCall     int32
+		StatsVisit      int32
+		UrlsGenerated   int32
+		SuccessRedirect int32
+		FailedRedirect  int32
+	}
+}
+
+func newUrlsStruct() *urlsStruct {
+	v := urlsStruct{}
+	v.urls = make(map[string]string)
+	return &v
 }
 
 var defaultChars = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -29,12 +46,15 @@ func generateURL() string {
 func (u *urlsStruct) createShortURL(url string) string {
 	shortURL := "/" + generateURL()
 	u.mux.Lock()
+	defer u.mux.Unlock()
 	u.urls[shortURL] = url
-	u.mux.Unlock()
+	atomic.AddInt32(&u.Stats.UrlsGenerated, 1)
 	return shortURL
 }
 
 func (u *urlsStruct) handler(w http.ResponseWriter, r *http.Request) {
+	atomic.AddInt32(&u.Stats.ShortenCall, 1)
+
 	url := string(r.URL.Path)
 
 	url = strings.Replace(url, "/shorten/", "", 1)
@@ -42,24 +62,61 @@ func (u *urlsStruct) handler(w http.ResponseWriter, r *http.Request) {
 
 	shortURL := u.createShortURL(url)
 	fmt.Fprintf(w, shortURL)
+}
 
+func (u *urlsStruct) showStats(w http.ResponseWriter, r *http.Request) {
+	atomic.AddInt32(&u.Stats.StatsVisit, 1)
+
+	formatNeeded, ok := r.URL.Query()["format"]
+	if ok && formatNeeded[0] == "json" {
+		u.mux.RLock()
+		b, err := json.MarshalIndent(u, "", "    ")
+		u.mux.RUnlock()
+		if err != nil {
+			log.Fatalf("Unable to encode")
+		}
+		fmt.Fprintf(w, string(b))
+		return
+	}
+
+	u.mux.RLock()
+	fmt.Fprintf(w, "home called: %d\n", atomic.LoadInt32(&u.Stats.HomeVisit))
+	fmt.Fprintf(w, "Shorten called: %d\n", atomic.LoadInt32(&u.Stats.ShortenCall))
+	fmt.Fprintf(w, "Stats called: %d\n", atomic.LoadInt32(&u.Stats.StatsVisit))
+
+	fmt.Fprintf(w, "Generated urls: %d\n", atomic.LoadInt32(&u.Stats.UrlsGenerated))
+	fmt.Fprintf(w, "Success redirect: %d\n", atomic.LoadInt32(&u.Stats.SuccessRedirect))
+	fmt.Fprintf(w, "Failed redirect: %d\n", atomic.LoadInt32(&u.Stats.FailedRedirect))
+	u.mux.RUnlock()
 }
 
 func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
+	atomic.AddInt32(&u.Stats.HomeVisit, 1)
+
 	fmt.Fprintf(w, "This is the home of my website!\n\n")
+
 	url := string(r.URL.Path)
-	expandedURL := u.urls[url]
-	if expandedURL != "" {
-		fmt.Fprintf(w, "Redirect to:\n"+expandedURL)
+	if url != "/" {
+		u.mux.RLock()
+		expandedURL := u.urls[url]
+		u.mux.RUnlock()
+		if expandedURL != "" {
+			fmt.Fprintf(w, "Redirect to:\n"+expandedURL)
+			atomic.AddInt32(&u.Stats.SuccessRedirect, 1)
+			return
+		}
+
+		atomic.AddInt32(&u.Stats.FailedRedirect, 1)
 	}
 }
 
 func main() {
-	data := urlsStruct{}
+	data := newUrlsStruct()
 
-	data.urls = make(map[string]string, 0)
+	// API
 	http.HandleFunc("/", data.home) // The dafault url is localhost:8080
 	http.HandleFunc("/shorten/", data.handler)
+	http.HandleFunc("/stats", data.showStats)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
