@@ -28,12 +28,6 @@ type urlsStruct struct {
 func newUrlsStruct() *urlsStruct {
 	v := urlsStruct{}
 	v.urls = make(map[string]string)
-	v.Stats.ShortenCall = 0
-	v.Stats.HomeVisit = 0
-	v.Stats.StatsVisit = 0
-	v.Stats.UrlsGenerated = 0
-	v.Stats.SuccessRedirect = 0
-	v.Stats.FailedRedirect = 0
 	return &v
 }
 
