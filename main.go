@@ -80,7 +80,7 @@ func (u *urlsStruct) showStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u.mux.RLock()
-	fmt.Fprintf(w, "home called: %d\n", atomic.LoadInt32(&u.Stats.HomeVisit))
+	fmt.Fprintf(w, "Home called: %d\n", atomic.LoadInt32(&u.Stats.HomeVisit))
 	fmt.Fprintf(w, "Shorten called: %d\n", atomic.LoadInt32(&u.Stats.ShortenCall))
 	fmt.Fprintf(w, "Stats called: %d\n", atomic.LoadInt32(&u.Stats.StatsVisit))
 
