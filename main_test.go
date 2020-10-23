@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -74,5 +73,52 @@ func TestShowStats(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("Unexpected body response:\n %s", rr.Body.String())
 	}
-	fmt.Printf(rr.Body.String())
+}
+
+func TestHomeWithoutRedir(t *testing.T) {
+	req, err := http.NewRequest("GET", "/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := newUrlsStruct()
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(data.home)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	expected := "This is the home of my website!\n\n"
+	if rr.Body.String() != expected {
+		t.Errorf("Unexpected body response:\n %s", rr.Body.String())
+	}
+}
+
+func TestHomeWithRedir(t *testing.T) {
+	data := newUrlsStruct()
+	url := data.createShortURL("www.test.com")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler2 := http.HandlerFunc(data.home)
+
+	handler2.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	expected := "This is the home of my website!\n\nRedirect to:\n" + data.urls[url]
+	if rr.Body.String() != expected {
+		t.Errorf("Unexpected body response:\n %s", rr.Body.String())
+	}
 }
