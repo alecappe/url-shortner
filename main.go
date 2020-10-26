@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -111,6 +112,10 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	var serverPort string
+	flag.StringVar(&serverPort, "addr", "localhost:8080", "Use to set the server address")
+	flag.Parse()
+
 	data := newUrlsStruct()
 
 	// API
@@ -118,5 +123,5 @@ func main() {
 	http.HandleFunc("/shorten/", data.handler)
 	http.HandleFunc("/stats", data.showStats)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(serverPort, nil))
 }
