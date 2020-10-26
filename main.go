@@ -135,9 +135,9 @@ func urlsFromJSON(u *urlsStruct, f string) {
 }
 
 func main() {
-	var serverPort string
+	var serverAddr string
 	var jsonPath string
-	flag.StringVar(&serverPort, "addr", "localhost:8080", "Use to set the server address")
+	flag.StringVar(&serverAddr, "addr", "localhost:8080", "Use to set the server address")
 	flag.StringVar(&jsonPath, "load", "", "Use to load a json file with urls")
 	flag.Parse()
 
@@ -152,5 +152,5 @@ func main() {
 	http.HandleFunc("/shorten/", data.handler)
 	http.HandleFunc("/stats", data.showStats)
 
-	log.Fatal(http.ListenAndServe(serverPort, nil))
+	log.Fatal(http.ListenAndServe(serverAddr, nil))
 }
