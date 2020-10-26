@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -111,12 +112,40 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func urlsFromJSON(u *urlsStruct, f string) {
+	data, err := ioutil.ReadFile(f)
+	if err != nil {
+		log.Fatalf("Read json file failed")
+	}
+
+	var result map[string]string
+
+	err = json.Unmarshal([]byte(data), &result)
+	if err != nil {
+		log.Fatalf("Error on decode json")
+	}
+
+	for key, el := range result {
+		fmt.Println(key, el)
+		u.mux.Lock()
+		u.urls[key] = el
+		atomic.AddInt32(&u.Stats.UrlsGenerated, 1)
+		u.mux.Unlock()
+	}
+}
+
 func main() {
 	var serverPort string
+	var jsonPath string
 	flag.StringVar(&serverPort, "addr", "localhost:8080", "Use to set the server address")
+	flag.StringVar(&jsonPath, "load", "", "Use to load a json file with urls")
 	flag.Parse()
 
 	data := newUrlsStruct()
+
+	if jsonPath != "" {
+		urlsFromJSON(data, jsonPath)
+	}
 
 	// API
 	http.HandleFunc("/", data.home) // The dafault url is localhost:8080
