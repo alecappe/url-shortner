@@ -6,6 +6,24 @@ import (
 	"testing"
 )
 
+func requestHelper(t *testing.T, endpoint string, h http.HandlerFunc) string {
+	t.Helper()
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	return rr.Body.String()
+}
+
 func TestGenerateURL(t *testing.T) {
 	v := generateURL()
 	if len(v) != 8 {
@@ -27,74 +45,35 @@ func TestCreateShortUrl(t *testing.T) {
 }
 
 func TestHandler(t *testing.T) {
-	req, err := http.NewRequest("GET", "/shorten/www.google.it", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	data := newUrlsStruct()
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(data.handler)
+	res := requestHelper(t, "/shorten/www.google.it", http.HandlerFunc(data.handler))
 
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
-	if len(rr.Body.String()) != 9 {
+	if len(res) != 9 {
 		t.Errorf("Handler returned unexpected string length")
 	}
 
-	if data.urls[rr.Body.String()] != "www.google.it" {
+	if data.urls[res] != "www.google.it" {
 		t.Errorf("The saved url in the map is wrong")
 	}
 }
 
 func TestShowStats(t *testing.T) {
-	req, err := http.NewRequest("GET", "/stats", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	data := newUrlsStruct()
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(data.showStats)
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	res := requestHelper(t, "/stats", http.HandlerFunc(data.showStats))
 
 	expected := "Home called: 0\nShorten called: 0\nStats called: 1\nGenerated urls: 0\nSuccess redirect: 0\nFailed redirect: 0\n"
-	if rr.Body.String() != expected {
-		t.Errorf("Unexpected body response:\n %s", rr.Body.String())
+	if res != expected {
+		t.Errorf("Unexpected body response:\n %s", res)
 	}
 }
 
 func TestHomeWithoutRedir(t *testing.T) {
-	req, err := http.NewRequest("GET", "/", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	data := newUrlsStruct()
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(data.home)
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+	res := requestHelper(t, "/", http.HandlerFunc(data.home))
 
 	expected := "This is the home of my website!\n\n"
-	if rr.Body.String() != expected {
-		t.Errorf("Unexpected body response:\n %s", rr.Body.String())
+	if res != expected {
+		t.Errorf("Unexpected body response:\n %s", res)
 	}
 }
 
