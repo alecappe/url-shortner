@@ -137,8 +137,8 @@ func (u *urlsStruct) loadURL(f string) error {
 }
 
 func main() {
-	var serverAddr string
-	var jsonPath string
+	serverAddr := ""
+	jsonPath := ""
 	flag.StringVar(&serverAddr, "addr", "localhost:8080", "Use to set the server address")
 	flag.StringVar(&jsonPath, "load", "", "Use to load a json file with urls")
 	flag.Parse()
