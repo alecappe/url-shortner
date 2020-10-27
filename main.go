@@ -112,7 +112,7 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func urlsFromJSON(u *urlsStruct, f string) {
+func (u *urlsStruct) loadURL(f string) {
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
 		log.Fatalf("Read json file failed")
@@ -144,7 +144,7 @@ func main() {
 	data := newUrlsStruct()
 
 	if jsonPath != "" {
-		urlsFromJSON(data, jsonPath)
+		data.loadURL(jsonPath)
 	}
 
 	// API
