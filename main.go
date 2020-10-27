@@ -112,17 +112,17 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (u *urlsStruct) loadURL(f string) {
+func (u *urlsStruct) loadURL(f string) error {
 	data, err := ioutil.ReadFile(f)
 	if err != nil {
-		log.Fatalf("Read json file failed")
+		return fmt.Errorf("can't read json file: %s", err)
 	}
 
 	var result map[string]string
 
 	err = json.Unmarshal([]byte(data), &result)
 	if err != nil {
-		log.Fatalf("Error on decode json")
+		return fmt.Errorf("can't decode: %s", err)
 	}
 
 	for key, el := range result {
@@ -132,6 +132,8 @@ func (u *urlsStruct) loadURL(f string) {
 		atomic.AddInt32(&u.Stats.UrlsGenerated, 1)
 		u.mux.Unlock()
 	}
+
+	return nil
 }
 
 func main() {
