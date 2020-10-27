@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -99,5 +100,23 @@ func TestHomeWithRedir(t *testing.T) {
 	expected := "This is the home of my website!\n\nRedirect to:\n" + data.urls[url]
 	if rr.Body.String() != expected {
 		t.Errorf("Unexpected body response:\n %s", rr.Body.String())
+	}
+}
+
+func TestLoadURLHasSucceed(t *testing.T) {
+	d := newUrlsStruct()
+	data := `{ "urlnum1": "google.it", "urlnum2": "golang.org"}`
+	r := strings.NewReader(data)
+	if err := d.loadURL(r); err != nil {
+		t.Errorf("Load urls failed: %s", err.Error())
+	}
+}
+
+func TestLoadURLFailed(t *testing.T) {
+	d := newUrlsStruct()
+	data := "url: google.it"
+	r := strings.NewReader(data)
+	if err := d.loadURL(r); err == nil {
+		t.Errorf("Load urls must be fail")
 	}
 }
