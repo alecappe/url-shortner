@@ -126,7 +126,6 @@ func (u *urlsStruct) loadURL(f string) error {
 	}
 
 	for key, el := range result {
-		fmt.Println(key, el)
 		u.mux.Lock()
 		u.urls[key] = el
 		atomic.AddInt32(&u.Stats.UrlsGenerated, 1)
