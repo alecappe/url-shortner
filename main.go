@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -113,15 +114,11 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (u *urlsStruct) loadURL(f string) error {
-	data, err := ioutil.ReadFile(f)
-	if err != nil {
-		return fmt.Errorf("can't read json file: %s", err)
-	}
-
+func (u *urlsStruct) loadURL(r io.Reader) error {
 	var result map[string]string
 
-	err = json.Unmarshal([]byte(data), &result)
+	dec := json.NewDecoder(r)
+	err := dec.Decode(&result)
 	if err != nil {
 		return fmt.Errorf("can't decode: %s", err)
 	}
@@ -146,7 +143,12 @@ func main() {
 	data := newUrlsStruct()
 
 	if jsonPath != "" {
-		if err := data.loadURL(jsonPath); err != nil {
+		d, err := ioutil.ReadFile(jsonPath)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		r := strings.NewReader(string(d))
+		if err := data.loadURL(r); err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
 		}
