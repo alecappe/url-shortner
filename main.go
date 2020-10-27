@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -145,7 +146,10 @@ func main() {
 	data := newUrlsStruct()
 
 	if jsonPath != "" {
-		data.loadURL(jsonPath)
+		if err := data.loadURL(jsonPath); err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
 	}
 
 	// API
