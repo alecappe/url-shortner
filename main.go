@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -164,5 +165,19 @@ func main() {
 	http.HandleFunc("/shorten/", data.handler)
 	http.HandleFunc("/stats", data.showStats)
 
-	log.Fatal(http.ListenAndServe(serverAddr, nil))
+	server := make(chan error)
+	c := make(chan os.Signal)
+
+	signal.Notify(c, os.Interrupt)
+
+	go func() {
+		select {
+		case sig := <-c:
+			fmt.Printf("Got %s signal. Aborting...\n", sig)
+			data.saveURLsOnExit(c)
+			os.Exit(1)
+		}
+	}()
+
+	server <- http.ListenAndServe(serverAddr, nil)
 }
