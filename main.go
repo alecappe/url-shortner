@@ -133,6 +133,11 @@ func (u *urlsStruct) loadURL(r io.Reader) error {
 	return nil
 }
 
+func (u *urlsStruct) saveURLsOnExit(c chan os.Signal) {
+	file, _ := json.MarshalIndent(u.urls, "", "    ")
+	_ = ioutil.WriteFile("urls_backup.json", file, 0644)
+}
+
 func main() {
 	serverAddr := ""
 	jsonPath := ""
