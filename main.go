@@ -2,10 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -110,13 +114,50 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (u *urlsStruct) loadURL(r io.Reader) error {
+	var result map[string]string
+
+	dec := json.NewDecoder(r)
+	err := dec.Decode(&result)
+	if err != nil {
+		return fmt.Errorf("can't decode: %s", err)
+	}
+
+	for key, el := range result {
+		u.mux.Lock()
+		u.urls[key] = el
+		atomic.AddInt32(&u.Stats.UrlsGenerated, 1)
+		u.mux.Unlock()
+	}
+
+	return nil
+}
+
 func main() {
+	serverAddr := ""
+	jsonPath := ""
+	flag.StringVar(&serverAddr, "addr", "localhost:8080", "Use to set the server address")
+	flag.StringVar(&jsonPath, "load", "", "Use to load a json file with urls")
+	flag.Parse()
+
 	data := newUrlsStruct()
+
+	if jsonPath != "" {
+		d, err := ioutil.ReadFile(jsonPath)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		r := strings.NewReader(string(d))
+		if err := data.loadURL(r); err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+	}
 
 	// API
 	http.HandleFunc("/", data.home) // The dafault url is localhost:8080
 	http.HandleFunc("/shorten/", data.handler)
 	http.HandleFunc("/stats", data.showStats)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(serverAddr, nil))
 }
