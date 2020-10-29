@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -133,6 +135,11 @@ func (u *urlsStruct) loadURL(r io.Reader) error {
 	return nil
 }
 
+func (u *urlsStruct) saveURLsOnExit() {
+	file, _ := json.MarshalIndent(u.urls, "", "    ")
+	_ = ioutil.WriteFile("urls_backup.json", file, 0644)
+}
+
 func main() {
 	serverAddr := ""
 	jsonPath := ""
@@ -159,5 +166,27 @@ func main() {
 	http.HandleFunc("/shorten/", data.handler)
 	http.HandleFunc("/stats", data.showStats)
 
-	log.Fatal(http.ListenAndServe(serverAddr, nil))
+	srv := http.Server{}
+	srv.Addr = serverAddr
+
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+
+		data.saveURLsOnExit()
+
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+		close(idleConnsClosed)
+	}()
+
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		// Error starting or closing listener:
+		log.Fatalf("HTTP server ListenAndServe: %v", err)
+	}
+
+	<-idleConnsClosed
 }
