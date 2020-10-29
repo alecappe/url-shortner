@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -134,7 +135,7 @@ func (u *urlsStruct) loadURL(r io.Reader) error {
 	return nil
 }
 
-func (u *urlsStruct) saveURLsOnExit(c chan os.Signal) {
+func (u *urlsStruct) saveURLsOnExit() {
 	file, _ := json.MarshalIndent(u.urls, "", "    ")
 	_ = ioutil.WriteFile("urls_backup.json", file, 0644)
 }
@@ -165,19 +166,27 @@ func main() {
 	http.HandleFunc("/shorten/", data.handler)
 	http.HandleFunc("/stats", data.showStats)
 
-	server := make(chan error)
-	c := make(chan os.Signal)
+	srv := http.Server{}
+	srv.Addr = serverAddr
 
-	signal.Notify(c, os.Interrupt)
-
+	idleConnsClosed := make(chan struct{})
 	go func() {
-		select {
-		case sig := <-c:
-			fmt.Printf("Got %s signal. Aborting...\n", sig)
-			data.saveURLsOnExit(c)
-			os.Exit(1)
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+
+		data.saveURLsOnExit()
+
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Printf("HTTP server Shutdown: %v", err)
 		}
+		close(idleConnsClosed)
 	}()
 
-	server <- http.ListenAndServe(serverAddr, nil)
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		// Error starting or closing listener:
+		log.Fatalf("HTTP server ListenAndServe: %v", err)
+	}
+
+	<-idleConnsClosed
 }
