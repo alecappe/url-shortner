@@ -23,7 +23,7 @@ type dataURLS struct {
 }
 
 func startServer() *exec.Cmd {
-	cmd := exec.Command("go", "run", "main.go", "-load", "urls.json")
+	cmd := exec.Command("./main", "-load", "urls.json")
 
 	err := cmd.Start()
 	if err != nil {
