@@ -30,11 +30,11 @@ func doTest() error {
 	nonExistingURL := "http://localhost:8080/not-existing-url"
 
 	resp, err := client.Get(nonExistingURL)
-	if resp.StatusCode != http.StatusNotFound {
-		return fmt.Errorf(nonExistingURL, "should not be found")
-	}
 	if err != nil {
 		return fmt.Errorf("Get request error", err)
+	}
+	if resp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf(nonExistingURL, "should not be found")
 	}
 	// +++++++++++++++++++++++++++++++++++++++
 
@@ -52,22 +52,22 @@ func doTest() error {
 
 	existingURL := "http://localhost:8080/urlnum1"
 	resp, err = client.Get(existingURL)
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(existingURL, "should be found")
-	}
 	if err != nil {
 		return fmt.Errorf("Get request error", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(existingURL, "should be found")
 	}
 	// +++++++++++++++++++++++++++++++++++++++
 
 	// call /shorten with a new URL (that wasn't in urls.json)
 	shortenURL := "http://localhost:8080/shorten/test.com"
 	resp, err = client.Get(shortenURL)
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(shortenURL, "didn't create a url")
-	}
 	if err != nil {
 		return fmt.Errorf("Get request error", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(shortenURL, "didn't create a url")
 	}
 
 	defer resp.Body.Close()
@@ -81,22 +81,22 @@ func doTest() error {
 	// call / with an URL that has just been added (check status code and ensure the redirect is working)
 	testGeneratedURL := "http://localhost:8080" + generatedURL
 	resp2, err := client.Get(testGeneratedURL)
-	if resp2.StatusCode != http.StatusOK {
-		return fmt.Errorf(testGeneratedURL, "don't exists")
-	}
 	if err != nil {
 		return fmt.Errorf("Get request error", err)
+	}
+	if resp2.StatusCode != http.StatusOK {
+		return fmt.Errorf(testGeneratedURL, "don't exists")
 	}
 	// +++++++++++++++++++++++++++++++++++++++
 
 	// call /statistics, unmarshall the returned json and checks that it corresponds to the actions taken
 	statisticsURL := "http://localhost:8080/stats?format=json"
 	resp2, err = client.Get(statisticsURL)
-	if resp2.StatusCode != http.StatusOK {
-		return fmt.Errorf(statisticsURL, "not found")
-	}
 	if err != nil {
 		return fmt.Errorf("Get request error", err)
+	}
+	if resp2.StatusCode != http.StatusOK {
+		return fmt.Errorf(statisticsURL, "not found")
 	}
 
 	defer resp2.Body.Close()
