@@ -40,7 +40,10 @@ func doTest() error {
 
 	defer func() {
 		if shouldKill == true {
-			cmd.Process.Signal(os.Interrupt)
+			sigerr := cmd.Process.Signal(os.Interrupt)
+			if sigerr != nil {
+				fmt.Println(sigerr.Error())
+			}
 		}
 	}()
 
@@ -144,9 +147,11 @@ func doTest() error {
 
 	// terminate the http server with a signal
 	fmt.Println("Client finish without errors")
-	cmd.Process.Signal(os.Interrupt)
+	err = cmd.Process.Signal(os.Interrupt)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	shouldKill = false
-
 	return nil
 	// +++++++++++++++++++++++++++++++++++++++
 }
