@@ -12,6 +12,8 @@ import (
 )
 
 type dataURLS struct {
+	urls map[string]string
+
 	Stats struct {
 		HomeVisit       int32
 		ShortenCall     int32
@@ -33,6 +35,25 @@ func startServer() *exec.Cmd {
 	return cmd
 }
 
+func verifyBackupFile(generatedURL string) error {
+	data, err := ioutil.ReadFile("./urls_backup.json")
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	obj := dataURLS{}
+
+	err = json.Unmarshal(data, &obj.urls)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	if obj.urls[generatedURL] == "" {
+		return fmt.Errorf("The generated url %s was not found in the file", generatedURL)
+	}
+	return nil
+}
+
 func doTest() error {
 	// Start the http server
 	cmd := startServer()
@@ -47,7 +68,7 @@ func doTest() error {
 		}
 	}()
 
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(1 * time.Second)
 	// +++++++++++++++++++++++++++++++++++++++
 
 	// call / on an non-existing url and check the http.StatusCode
@@ -152,6 +173,14 @@ func doTest() error {
 		fmt.Println(err.Error())
 	}
 	shouldKill = false
+
+	time.Sleep(1 * time.Second)
+
+	err = verifyBackupFile(generatedURL)
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
 	return nil
 	// +++++++++++++++++++++++++++++++++++++++
 }
