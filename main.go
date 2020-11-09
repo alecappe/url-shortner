@@ -97,10 +97,6 @@ func (u *urlsStruct) showStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
-	atomic.AddInt32(&u.Stats.HomeVisit, 1)
-
-	fmt.Fprintf(w, "This is the home of my website!\n\n")
-
 	url := string(r.URL.Path)
 	if url != "/" {
 		u.mux.RLock()
@@ -113,7 +109,13 @@ func (u *urlsStruct) home(w http.ResponseWriter, r *http.Request) {
 		}
 
 		atomic.AddInt32(&u.Stats.FailedRedirect, 1)
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("404 - Not found"))
+		return
 	}
+
+	atomic.AddInt32(&u.Stats.HomeVisit, 1)
+	fmt.Fprintf(w, "This is the home of my website!\n\n")
 }
 
 func (u *urlsStruct) loadURL(r io.Reader) error {
