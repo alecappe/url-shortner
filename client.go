@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"time"
 )
 
 type dataURLS struct {
@@ -19,9 +22,29 @@ type dataURLS struct {
 	}
 }
 
+func startServer() *exec.Cmd {
+	cmd := exec.Command("go", "run", "main.go", "-load", "urls.json")
+
+	err := cmd.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return cmd
+}
+
 func doTest() error {
 	// Start the http server
+	cmd := startServer()
+	shouldKill := true
 
+	defer func() {
+		if shouldKill == true {
+			cmd.Process.Signal(os.Interrupt)
+		}
+	}()
+
+	time.Sleep(1000 * time.Millisecond)
 	// +++++++++++++++++++++++++++++++++++++++
 
 	// call / on an non-existing url and check the http.StatusCode
@@ -120,9 +143,12 @@ func doTest() error {
 	// +++++++++++++++++++++++++++++++++++++++
 
 	// terminate the http server with a signal
+	fmt.Println("Client finish without errors")
+	cmd.Process.Signal(os.Interrupt)
+	shouldKill = false
 
-	// +++++++++++++++++++++++++++++++++++++++
 	return nil
+	// +++++++++++++++++++++++++++++++++++++++
 }
 
 func main() {
