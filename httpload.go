@@ -27,8 +27,8 @@ func (s *stats) req(url string, reqNum int) {
 
 func main() {
 	URL := ""
-	concNum := 0
-	reqNum := 0
+	concNum := 0 // number of concurrent workers
+	reqNum := 0  // number of total requests
 
 	flag.StringVar(&URL, "", "http://www.google.it", "url to test")
 	flag.IntVar(&concNum, "w", 50, "number of workers to run concurrently. default:50")
