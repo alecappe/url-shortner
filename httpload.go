@@ -25,15 +25,17 @@ func (s *stats) req(url string) {
 
 func main() {
 	URL := ""
+	concNum := 0
 
 	flag.StringVar(&URL, "", "http://www.google.it", "url to test")
+	flag.IntVar(&concNum, "w", 50, "number of workers to run concurrently. default:50")
 	flag.Parse()
 
 	s := stats{}
 	s.successRequest = 0
 	s.failedRequest = 0
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < concNum; i++ {
 		go s.req(URL)
 	}
 
