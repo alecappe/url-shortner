@@ -1,54 +1,63 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
 type stats struct {
 	failedRequest  int
 	successRequest int
+
 }
 
-func (s *stats) req(url string) {
-	r, err := http.Get(url)
-	if err != nil {
-		s.failedRequest++
-		return
-	}
-	fmt.Println(r.StatusCode)
+func (s *stats) reqXn(url string, reqNum int, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-	s.successRequest++
-}
-
-func (s *stats) reqXn(url string, reqNum int) {
 	for i := 0; i < reqNum; i++ {
-		s.req(url)
+		r, err := http.Get(url)
+		if err != nil {
+			fmt.Println(err.Error())
+			s.failedRequest++
+			return
+		}
+
+		fmt.Println(r.StatusCode)
+		s.successRequest++
+		r.Body.Close()
 	}
 }
 
-func (s *stats) reqXtime(url string, duration string) {
-	d, err := time.ParseDuration(duration)
-	if err != nil {
-		s.failedRequest++
-		return
-	}
+func (s *stats) reqXtime(cancelCtx context.Context, url string) {
+	client := http.Client{}
 
-	stop := make(chan bool)
-
-	go func() {
-		for {
-			s.req(url)
-			select {
-			case <-time.After(d):
-			case <-stop:
-				return
-			}
+	for {
+		r, err := http.NewRequestWithContext(cancelCtx, "GET", url, nil)
+		if err != nil {
+			fmt.Println(err.Error())
+			s.failedRequest++
+			return
 		}
-	}()
+
+		resp, err := client.Do(r)
+		if err != nil {
+			fmt.Println(err.Error())
+			s.failedRequest++
+			return
+		}
+
+		fmt.Println(resp.StatusCode)
+		io.Copy(ioutil.Discard, resp.Body)
+		resp.Body.Close()
+		s.successRequest++
+	}
 }
 
 func main() {
@@ -63,24 +72,39 @@ func main() {
 	flag.StringVar(&duration, "z", "", "duration of application to send requests.")
 	flag.Parse()
 
-	if reqNum < concNum {
-		fmt.Println("The number of request can't be smaller than number of workers")
+	if duration == "" && reqNum < concNum {
+		fmt.Println("The number of requests can't be smaller than number of workers")
 		os.Exit(1)
 	}
 
-	s := stats{}
-	s.successRequest = 0
-	s.failedRequest = 0
+	var d time.Duration
+	var err error
 
-	for i := 0; i < concNum; i++ {
-		if duration != "" {
-			go s.reqXtime(URL, duration)
-		} else {
-			go s.reqXn(URL, reqNum/concNum)
+	if duration != "" {
+		d, err = time.ParseDuration(duration)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
 		}
 	}
 
-	var input string
-	fmt.Scanln(&input)
+	s := stats{}
+
+	wg := new(sync.WaitGroup)
+	ctx := context.Background()
+
+	for i := 0; i < concNum; i++ {
+		if duration != "" {
+			cancelCtx, cancel := context.WithTimeout(ctx, d)
+			defer cancel()
+			s.reqXtime(cancelCtx, URL)
+		} else {
+			wg.Add(1)
+			go s.reqXn(URL, reqNum/concNum, wg)
+		}
+	}
+
+	wg.Wait()
+
 	fmt.Println(s.successRequest, s.failedRequest)
 }
