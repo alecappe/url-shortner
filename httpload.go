@@ -22,7 +22,7 @@ type stats struct {
 	slowest      time.Duration
 	fastest      time.Duration
 	average      time.Duration
-	requestsXSec time.Duration
+	requestsXSec float64
 }
 
 func (s *stats) reqXn(url string, reqNum int, wg *sync.WaitGroup) {
@@ -106,12 +106,16 @@ func (s *stats) printStats() {
 	// Calculate average before print stats
 	s.averageTime()
 
+	// Calculate requests/sec
+	s.requestsXSec = float64(len(s.reqTimes)) / s.totalTime.Seconds()
+
 	// Print stats
 	fmt.Println("Summary:")
 	fmt.Println("Total:", s.totalTime)
-	fmt.Println("Slowest", s.slowest)
-	fmt.Println("Fastest", s.fastest)
-	fmt.Println("Average", s.average)
+	fmt.Println("Slowest:", s.slowest)
+	fmt.Println("Fastest:", s.fastest)
+	fmt.Println("Average:", s.average)
+	fmt.Println("Requests/sec:", s.requestsXSec)
 }
 
 func main() {
