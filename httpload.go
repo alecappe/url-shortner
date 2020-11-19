@@ -124,7 +124,6 @@ func main() {
 	reqNum := 0    // number of total requests
 	duration := "" // duration of application to send requests
 
-	// flag.StringVar(&URL, "", "http://www.google.it", "url to test")
 	flag.IntVar(&concNum, "w", 50, "number of workers to run concurrently. default:50")
 	flag.IntVar(&reqNum, "n", 200, "number of requests to run. default:200.")
 	flag.StringVar(&duration, "z", "", "duration of application to send requests.")
